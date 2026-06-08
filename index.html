@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Hero - 節奏音樂遊戲</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-color: #16213e;
+            --accent-color: #0f3460;
+            --text-color: #e94560;
+            --left-color: #FF4136;
+            --down-color: #0074D9;
+            --up-color: #2ECC40;
+            --right-color: #FFDC00;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            display: flex;
+            width: 900px;
+            height: 650px;
+            background-color: var(--panel-color);
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 左側設定與角色面板 */
+        #left-panel {
+            width: 350px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: rgba(15, 52, 96, 0.5);
+            border-right: 3px solid var(--accent-color);
+        }
+
+        .title-area h1 {
+            color: var(--text-color);
+            font-size: 2rem;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .select-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: #bbb;
+            margin-bottom: 5px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-color);
+            color: #fff;
+            border: 1px solid var(--text-color);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        #start-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--text-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(233, 69, 96, 0.3);
+        }
+
+        #start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(233, 69, 96, 0.5);
+        }
+
+        #start-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* 角色舞台 */
+        #character-stage {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, rgba(15,52,96,1) 0%, rgba(26,26,46,1) 100%);
+            border-radius: 10px;
+            margin-top: 15px;
+            padding: 15px;
+            position: relative;
+            border: 2px solid #333;
+        }
+
+        #character {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            transition: transform 0.1s ease-in-out;
+        }
+
+        /* 像素風小精靈角色外觀 */
+        .char-body {
+            width: 100%;
+            height: 100%;
+            background-color: #00ffd5;
+            border-radius: 50% 50% 20% 20%;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 255, 213, 0.6);
+            border: 4px solid #fff;
+        }
+
+        .char-eye {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #1a1a2e;
+            border-radius: 50%;
+            top: 35px;
+            transition: all 0.1s;
+        }
+        .char-eye.left { left: 25px; }
+        .char-eye.right { right: 25px; }
+
+        .char-mouth {
+            position: absolute;
+            width: 30px;
+            height: 15px;
+            border-bottom: 5px solid #1a1a2e;
+            border-radius: 0 0 15px 15px;
+            top: 65px;
+            left: 45px;
+            transition: all 0.1s;
+        }
+
+        /* 角色動作樣式 */
+        .pose-left { transform: translateX(-20px) rotate(-10deg); }
+        .pose-right { transform: translateX(20px) rotate(10deg); }
+        .pose-up { transform: translateY(-20px) scaleY(1.1); }
+        .pose-down { transform: translateY(15px) scaleY(0.9); }
+
+        #praise-bubble {
+            position: absolute;
+            top: 15px;
+            background: white;
+            color: #1a1a2e;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+
+        #praise-bubble.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* 右側遊戲軌道面板 */
+        #game-play-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #score-board {
+            height: 70px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 0 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .score-val {
+            color: var(--text-color);
+            font-size: 1.5rem;
+        }
+        
+        #speed-val {
+            color: #00ffd5;
+        }
+
+        /* 遊戲軌道 */
+        #tracks-container {
+            flex-grow: 1;
+            display: flex;
+            position: relative;
+            background: linear-gradient(180deg, rgba(26,26,46,0.3) 0%, rgba(22,33,62,0.8) 80%, rgba(15,52,96,1) 100%);
+        }
+
+        .track {
+            flex: 1;
+            border-right: 1px dashed rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        .track:last-child { border-right: none; }
+
+        /* 判定線區域 */
+        #judgment-zone {
+            position: absolute;
+            bottom: 60px;
+            width: 100%;
+            height: 60px;
+            border-top: 3px double #fff;
+            border-bottom: 3px double #fff;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            pointer-events: none;
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+        }
+
+        .judgment-target {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            opacity: 0.3;
+            transition: all 0.1s;
+        }
+
+        /* 四個方向鍵的底色與符號 */
+        .target-left { color: var(--left-color); }
+        .target-down { color: var(--down-color); }
+        .target-up { color: var(--up-color); }
+        .target-right { color: var(--right-color); }
+
+        .judgment-target.active {
+            opacity: 1;
+            transform: scale(1.2);
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        /* 下落方塊 */
+        .note {
+            position: absolute;
+            width: 80%;
+            left: 10%;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.6);
+        }
+
+        .note-left { background: var(--left-color); box-shadow: 0 0 15px var(--left-color); }
+        .note-down { background: var(--down-color); box-shadow: 0 0 15px var(--down-color); }
+        .note-up { background: var(--up-color); box-shadow: 0 0 15px var(--up-color); }
+        .note-right { background: var(--right-color); box-shadow: 0 0 15px var(--right-color); }
+
+        /* 打擊評分特效 (Perfect / Miss) */
+        #hit-rating {
+            position: absolute;
+            bottom: 140px;
+            width: 100%;
+            text-align: center;
+            font-size: 2.2rem;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: none;
+            z-index: 10;
+        }
+
+        #hit-rating.animate {
+            animation: ratingPop 0.3s ease-out forwards;
+        }
+
+        @keyframes ratingPop {
+            0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+            40% { opacity: 1; transform: scale(1.2) translateY(-5px); }
+            100% { opacity: 0; transform: scale(1) translateY(-10px); }
+        }
+
+        /* 說明面板 */
+        #instruction {
+            font-size: 0.8rem;
+            color: #888;
+            line-height: 1.4;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="left-panel">
+        <div class="title-area">
+            <h1>RHYTHM HERO</h1>
+            <div class="select-group">
+                <label for="music-select">選擇背景音樂 (BPM 節奏)</label>
+                <select id="music-select">
+                    <option value="100">🎵 舒適極簡風 (100 BPM)</option>
+                    <option value="120" selected>🎵 經典電子樂 (120 BPM)</option>
+                    <option value="140">🎵 霓虹賽博格 (140 BPM)</option>
+                    <option value="160">🎵 速度疾走感 (160 BPM)</option>
+                    <option value="180">🎵 狂暴人類極限 (180 BPM)</option>
+                </select>
+            </div>
+            <button id="start-btn">開始遊戲 START</button>
+        </div>
+
+        <div id="character-stage">
+            <div id="praise-bubble">準備好了嗎！</div>
+            <div id="character">
+                <div class="char-body">
+                    <div class="char-eye left" id="eye-l"></div>
+                    <div class="char-eye right" id="eye-r"></div>
+                    <div class="char-mouth" id="mouth"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="instruction">
+            <strong>【操作說明】</strong><br>
+            當上方落下的箭頭方塊到達下方的<strong>雙線判定框</strong>時，按下鍵盤對應的 <strong>← ↓ ↑ →</strong> 方向鍵。<br>
+            分數越高，方塊速度與生成頻率會隨之加快！
+        </div>
+    </div>
+
+    <div id="game-play-area">
+        <div id="score-board">
+            <div>分數 Score: <span id="score-val" class="score-val">0</span></div>
+            <div>目前速度 Spd: <span id="speed-val">1.0x</span></div>
+        </div>
+
+        <div id="tracks-container">
+            <div id="hit-rating">PERFECT</div>
+            
+            <div class="track" id="track-0"></div>
+            <div class="track" id="track-1"></div>
+            <div class="track" id="track-2"></div>
+            <div class="track" id="track-3"></div>
+
+            <div id="judgment-zone">
+                <div class="judgment-target target-left" id="target-0">←</div>
+                <div class="judgment-target target-down" id="target-1">↓</div>
+                <div class="judgment-target target-up" id="target-2">↑</div>
+                <div class="judgment-target target-right" id="target-3">→</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 音效模擬系統 (使用 Web Audio API，無需外接音檔) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let synthInterval = null;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+    }
+
+    // 播放合成拍點 (模擬音樂背景與節奏)
+    function playBeatSound(isHeavy = false) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.type = isHeavy ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(isHeavy ? 120 : 300, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    // 播放打擊音效
+    function playHitSound(isSuccess) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (isSuccess) {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        }
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+
+    // --- 遊戲邏輯變數 ---
+    const tracks = [
+        { id: 0, key: 'ArrowLeft', element: document.getElementById('track-0'), target: document.getElementById('target-0'), type: 'left', charPose: 'pose-left', symbol: '←' },
+        { id: 1, key: 'ArrowDown', element: document.getElementById('track-1'), target: document.getElementById('target-1'), type: 'down', charPose: 'pose-down', symbol: '↓' },
+        { id: 2, key: 'ArrowUp', element: document.getElementById('track-2'), target: document.getElementById('target-2'), type: 'up', charPose: 'pose-up', symbol: '↑' },
+        { id: 3, key: 'ArrowRight', element: document.getElementById('track-3'), target: document.getElementById('target-3'), type: 'right', charPose: 'pose-right', symbol: '→' }
+    ];
+
+    let score = 0;
+    let isPlaying = false;
+    let activeNotes = [];
+    let gameLoopId = null;
+    let spawnTimer = 0;
+    
+    // 難度控制項
+    let bpm = 120;
+    let baseSpawnInterval = 600; // 毫秒 (會根據BPM與分數動態調整)
+    let fallSpeed = 4;           // 基礎每影格下降像素
+    const maxFallSpeed = 10;     // 人類極限速度上限
+    const minSpawnInterval = 180; // 方塊生成最高頻率上限 (毫秒)
+
+    // DOM 元素
+    const startBtn = document.getElementById('start-btn');
+    const musicSelect = document.getElementById('music-select');
+    const scoreVal = document.getElementById('score-val');
+    const speedVal = document.getElementById('speed-val');
+    const hitRating = document.getElementById('hit-rating');
+    const character = document.getElementById('character');
+    const praiseBubble = document.getElementById('praise-bubble');
+    const charBody = document.querySelector('.char-body');
+
+    // 判定範圍配置 (距離遊戲區域頂部的 Y 座標)
+    const judgmentZoneTop = 460; // 雙線區頂
+    const judgmentZoneBottom = 520; // 雙線區底
+    const containerHeight = 580;
+
+    // --- 核心控制事件 ---
+    startBtn.addEventListener('click', () => {
+        initAudio();
+        if (isPlaying) {
+            stopGame();
+        } else {
+            startGame();
+        }
+    });
+
+    function startGame() {
+        isPlaying = true;
+        score = 0;
+        activeNotes.forEach(note => note.element.remove());
+        activeNotes = [];
+        scoreVal.innerText = score;
+        startBtn.innerText = '停止遊戲 STOP';
+        musicSelect.disabled = true;
+        
+        bpm = parseInt(musicSelect.value);
+        updateDifficulty();
+
+        // 啟動虛擬背景節奏拍點
+        let beatCount = 0;
+        const beatDuration = (60 / bpm) * 1000;
+        synthInterval = setInterval(() => {
+            beatCount++;
+            playBeatSound(beatCount % 4 === 1); // 第一拍重音
+        }, beatDuration);
+
+        // 遊戲主循環
+        lastTime = performance.now();
+        gameLoopId = requestAnimationFrame(gameLoop);
+        
+        showPraise("準備跳舞吧！", "#00ffd5");
+    }
+
+    function stopGame() {
+        isPlaying = false;
+        startBtn.innerText = '開始遊戲 START';
+        musicSelect.disabled = false;
+        cancelAnimationFrame(gameLoopId);
+        clearInterval(synthInterval);
+        
+        // 清除所有畫面上殘留的方塊
+        activeNotes.forEach(note => note.element.remove());
+        activeNotes = [];
+        showPraise("遊戲結束！", "#FF4136");
+        resetCharacterPose();
+    }
+
+    // --- 難度動態演算法 ---
+    function updateDifficulty() {
+        // 隨分數增長速度，最高速隨分數拉高，但設有 maxFallSpeed (10) 人類上限
+        fallSpeed = 4 + Math.min(6, Math.floor(score / 15) * 0.8);
+        
+        // 隨分數提高，方塊產出間隔變短，但設有最低限制 (180ms) 以防完全滿畫面
+        const scoreFactor = Math.max(0.4, 1 - (score / 100) * 0.3); 
+        baseSpawnInterval = Math.max(minSpawnInterval, ((60 / bpm) * 1000) * scoreFactor);
+
+        speedVal.innerText = (fallSpeed / 4).toFixed(1) + "x";
+    }
+
+    // --- 遊戲主循環運算 ---
+    let lastTime = 0;
+    function gameLoop(timestamp) {
+        if (!isPlaying) return;
+
+        const deltaTime = timestamp - lastTime;
+        lastTime = timestamp;
+
+        // 處理方塊生成計時 (配合節奏與分數)
+        spawnTimer += deltaTime;
+        if (spawnTimer >= baseSpawnInterval) {
+            spawnNote();
+            spawnTimer = 0;
+        }
+
+        // 移動方塊與漏接(Miss)判定
+        for (let i = activeNotes.length - 1; i >= 0; i--) {
+            const note = activeNotes[i];
+            note.y += fallSpeed;
+            note.element.style.top = note.y + 'px';
+
+            // 超過判定區未打擊 -> Miss
+            if (note.y > judgmentZoneBottom + 10) {
+                triggerRating('MISS', '#FF4136');
+                playHitSound(false);
+                changeScore(-1);
+                note.element.remove();
+                activeNotes.splice(i, 1);
+            }
+        }
+
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+
+    // 隨機在四個軌道生成契合節奏的方塊
+    function spawnNote() {
+        // 有機率一次出雙軌，增加音遊層次感，隨分數提高機率
+        const doubleNoteChance = score > 30 ? 0.25 : 0.05;
+        const trackIndices = [0, 1, 2, 3];
+        
+        // 隨機洗牌軌道
+        trackIndices.sort(() => Math.random() - 0.5);
+        
+        createNoteDOM(trackIndices[0]);
+        if (Math.random() < doubleNoteChance) {
+            createNoteDOM(trackIndices[1]);
+        }
+    }
+
+    function createNoteDOM(trackIdx) {
+        const track = tracks[trackIdx];
+        const noteEl = document.createElement('div');
+        noteEl.className = `note note-${track.type}`;
+        noteEl.innerText = track.symbol;
+        noteEl.style.top = '0px';
+        track.element.appendChild(noteEl);
+
+        activeNotes.push({
+            track: trackIdx,
+            y: 0,
+            element: noteEl
+        });
+    }
+
+    // --- 分數與角色讚美反饋機制 ---
+    function changeScore(amount) {
+        score += amount;
+        if (score < 0) score = 0; // 最低零分
+        scoreVal.innerText = score;
+        
+        updateDifficulty();
+        updateCharacterEmotion();
+    }
+
+    // 依分數高低動態給予讚美與角色變色外觀
+    function updateCharacterEmotion() {
+        if (score >= 60) {
+            showPraise("👑 跨世代終極音遊之神 👑", "#ff00ff");
+            charBody.style.backgroundColor = "#ff00ff";
+            charBody.style.boxShadow = "0 0 25px #ff00ff";
+        } else if (score >= 40) {
+            showPraise("🔥 節奏幻影！太瘋狂了！", "#FFDC00");
+            charBody.style.backgroundColor = "#FFDC00";
+            charBody.style.boxShadow = "0 0 20px #FFDC00";
+        } else if (score >= 25) {
+            showPraise("⚡ 輕輕鬆鬆！完美連擊！", "#00ffd5");
+            charBody.style.backgroundColor = "#00ffd5";
+            charBody.style.boxShadow = "0 0 15px #00ffd5";
+        } else if (score >= 10) {
+            showPraise("👍 挺有節奏感的嘛！加油！", "#2ECC40");
+            charBody.style.backgroundColor = "#2ECC40";
+            charBody.style.boxShadow = "0 0 10px #2ECC40";
+        } else {
+            showPraise("🎵 暖身中，跟著節奏動起來！", "#0074D9");
+            charBody.style.backgroundColor = "#0074D9";
+            charBody.style.boxShadow = "0 0 10px #0074D9";
+        }
+    }
+
+    function showPraise(text, color) {
+        praiseBubble.innerText = text;
+        praiseBubble.style.border = `2px solid ${color}`;
+        praiseBubble.classList.add('show');
+    }
+
+    // 畫面上打擊評級動畫 (PERFECT / MISS)
+    function triggerRating(text, color) {
+        hitRating.innerText = text;
+        hitRating.style.color = color;
+        hitRating.style.textShadow = `0 0 15px ${color}`;
+        
+        hitRating.classList.remove('animate');
+        void hitRating.offsetWidth; // 觸發重繪強制動畫重置
+        hitRating.classList.add('animate');
+    }
+
+    // --- 鍵盤輸入事件與動態肢體動作 ---
+    window.addEventListener('keydown', (e) => {
+        if (!isPlaying) return;
+
+        const targetTrack = tracks.find(t => t.key === e.key);
+        if (!targetTrack) return;
+
+        e.preventDefault();
+
+        // 視覺亮起對應軌道按鈕
+        targetTrack.target.classList.add('active');
+
+        // 控制角色變換對應舞蹈動作
+        resetCharacterPose();
+        character.classList.add(targetTrack.charPose);
+        document.getElementById('mouth').style.height = "25px"; // 唱歌跳舞張嘴
+
+        // 檢查該軌道是否有可擊中的方塊
+        // 尋找該軌道最下方（Y座標最大）的方塊
+        let candidateNote = null;
+        let candidateIdx = -1;
+
+        for (let i = 0; i < activeNotes.length; i++) {
+            if (activeNotes[i].track === targetTrack.id) {
+                if (!candidateNote || activeNotes[i].y > candidateNote.y) {
+                    candidateNote = activeNotes[i];
+                    candidateIdx = i;
+                }
+            }
+        }
+
+        // 判定精準度計分
+        if (candidateNote) {
+            const noteY = candidateNote.y;
+            
+            // 如果方塊進入判定雙線框內 (完美擊中)
+            if (noteY >= judgmentZoneTop - 15 && noteY <= judgmentZoneBottom + 5) {
+                triggerRating('PERFECT', '#00ffd5');
+                playHitSound(true);
+                changeScore(1);
+                
+                candidateNote.element.remove();
+                activeNotes.splice(candidateIdx, 1);
+            } else if (noteY > judgmentZoneTop - 50 && noteY < judgmentZoneTop - 15) {
+                // 太早按，不予計分但不扣分，消滅方塊
+                triggerRating('TOO EARLY', '#FFDC00');
+                candidateNote.element.remove();
+                activeNotes.splice(candidateIdx, 1);
+            }
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        const targetTrack = tracks.find(t => t.key === e.key);
+        if (targetTrack) {
+            targetTrack.target.classList.remove('active');
+        }
+        
+        // 隨機微延遲讓舞蹈動作更流暢自然，不至於瞬間變回呆板僵直
+        setTimeout(() => {
+            if (isPlaying) {
+                let anyActive = tracks.some(t => document.getElementById(`target-${t.id}`).classList.contains('active'));
+                if (!anyActive) resetCharacterPose();
+            }
+        }, 80);
+    });
+
+    function resetCharacterPose() {
+        tracks.forEach(t => character.classList.remove(t.charPose));
+        document.getElementById('mouth').style.height = "15px"; // 恢復閉嘴/微笑
+    }
+</script>
+
+</body>
+</html>
